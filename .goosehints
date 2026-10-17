@@ -1,0 +1,16 @@
+# About the user
+Roman Korkin, PhD theoretical physics, Lead/Principal Physicist at SLB (Pressure Pumping and Chemistry).
+Domains: fiber optic sensing (DAS/DSS), well logging, hydraulic fracturing monitoring, geophysical inversion.
+
+# Preferences
+- Ответы: русский для общения, английский для технических/научных деталей и кода
+- Концизно, с объяснением "почему", без воды
+- Код без комментариев, читаемый сам по себе
+- Не галлюцинировать на цифрах — если не уверен, скажи
+- Не делай лишних действий (tree, ls) если путь уже известен
+
+# Active project
+AI4Science course (ShAD, Khalov). Задача курса — создать модель определения приближения фрак хитов по данным DAS.
+
+# Local knowledge graph
+9 PDF про LF-DAS/fracturing в graph_storage/ (208 чанков). Запрос через knowledge-graph skill.

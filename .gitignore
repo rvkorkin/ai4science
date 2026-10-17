@@ -1,0 +1,30 @@
+# Secrets — NEVER commit
+.env
+.env.*
+*.key
+*.pem
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.pytest_cache/
+
+# Heavy / generated artifacts (не входят в сдачу ДЗ1)
+graph_storage/
+articles/
+*.pdf
+*.npz
+*.pt
+*.olean
+
+# Agent/tooling data
+.goose/
+.tools/
+
+# OS / editors
+.DS_Store
+.vscode/
+.idea/
+*.swp

@@ -78,7 +78,7 @@ AI4Science / Goose 1.50 поверх Yandex AI Studio (OpenAI-совместим
 - `deploy/` — live app (shell.py, nn_seq_pipeline, inference, веса, пороги, `wedge_near.py`)
 - `core/` — training code (nn_seq_pipeline, `preprocess.py`, windowed_core, split.json)
 - `verify/` — **верификатор ДЗ-2** (property-тесты + валидатор данных + расширение)
-- Данные: `FIELD_DATA_DIR=D:\work\TrafficLight\field_data_enriched` (623 npz) через `.env`.
+- Данные: `FIELD_DATA_DIR=D:\work\TrafficLight\field_data_enriched` (626 npz) через `.env`.
 
 ---
 
@@ -94,7 +94,7 @@ AI4Science / Goose 1.50 поверх Yandex AI Studio (OpenAI-совместим
   Hypothesis — отсутствие look-ahead-утечки доказано рандомизированным возмущением будущего.
 - **Аудит split** на утечки (train∩val, покрытие лейблами, tpk-диапазон, well-группы).
 - **Валидатор данных** — схема + физические инварианты 623 npz (0 ошибок).
-- Численный эксперимент: `18 passed` (pytest), 623/623 файлов валидны.
+- Численный эксперимент: `18 passed` (pytest), 626/626 файлов валидны (0 ошибок).
 - **Расширение:** неопределённость разметки → консенсус оценщиков (клин/активность/ручная) →
   soft-labels → опт-ин проводка в обучение; A/B на GPU показал рост детекции (recall@FAR≤0.10
   0.0→0.73, AUC 0.881→0.915) и near-field точности прихода.

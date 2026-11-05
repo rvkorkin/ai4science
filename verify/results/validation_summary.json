@@ -1,18 +1,20 @@
 {
-  "n_files": 623,
-  "n_ok": 623,
+  "n_files": 626,
+  "n_ok": 626,
   "n_error": 0,
   "error_types": {},
   "warning_types": {
     "strain_rate_extreme": 327,
-    "dz_out_of_range": 48,
-    "no_label_entry": 7
+    "label_D_mismatch": 1,
+    "no_label_entry": 12,
+    "dz_out_of_range": 48
   },
   "n_hit": 142,
-  "n_nohit": 474,
+  "n_nohit": 472,
   "T_min": 10,
   "T_max": 615,
   "D_values": [
+    180,
     200,
     300,
     500,

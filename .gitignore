@@ -1,0 +1,37 @@
+# Secrets — NEVER commit
+.env
+.env.*
+*.key
+*.pem
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.pytest_cache/
+.hypothesis/
+
+# TrafficLight research data — lives OUTSIDE the submission (same policy as HW1)
+data/
+field_data_enriched/
+split.json
+field_strongest_hits.json
+*.npz
+*.pt
+*.pdf
+*.h5
+*.fbe
+*.olean
+*.log
+*.bak
+
+# Agent/tooling data
+.goose/
+.tools/
+
+# OS / editors
+.DS_Store
+.vscode/
+.idea/
+*.swp

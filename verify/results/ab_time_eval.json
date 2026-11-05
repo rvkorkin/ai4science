@@ -1,0 +1,18 @@
+{
+  "baseline": {
+    "n_hit": 15,
+    "mae_manual": 21.78492415117049,
+    "mae_consensus": 17.558257484503823,
+    "median_manual": 20.562933152899177,
+    "median_consensus": 18.86994510425255,
+    "detect_rate": 0.2
+  },
+  "soft": {
+    "n_hit": 15,
+    "mae_manual": 20.963487696848606,
+    "mae_consensus": 17.026215963768646,
+    "median_manual": 19.443269486451527,
+    "median_consensus": 12.160953873960011,
+    "detect_rate": 0.8
+  }
+}

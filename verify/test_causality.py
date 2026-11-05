@@ -72,32 +72,33 @@ def test_decimate_causal_not_vacuous(case):
 
 
 @st.composite
-def _series_case(draw):
-    T = draw(st.integers(min_value=5, max_value=120))
+def _sr_case(draw):
+    T = draw(st.integers(min_value=10, max_value=60))
     D = draw(st.integers(min_value=1, max_value=8))
+    dt_sec = draw(st.integers(min_value=10, max_value=60))
+    smooth_sec = draw(st.floats(min_value=0.0, max_value=180.0))
+    k = draw(st.integers(min_value=1, max_value=T - 1))
     seed = draw(st.integers(min_value=0, max_value=100_000))
-    smooth = draw(st.sampled_from([0.0, 60.0, 90.0, 120.0]))
-    return T, D, seed, smooth
+    return T, D, dt_sec, smooth_sec, k, seed
 
 
-@settings(max_examples=250, deadline=None)
-@given(_series_case())
+@settings(max_examples=100, deadline=None)
+@given(_sr_case())
 def test_strain_rate_causal_no_future_leak(case):
-    T, D, seed, smooth = case
+    T, D, dt_sec, smooth_sec, k, seed = case
     rng = np.random.default_rng(seed)
     strain = rng.standard_normal((T, D)).astype(np.float64)
 
-    y1 = pp.strain_rate_causal(strain, dt_sec=60.0, smooth_sec=smooth)
+    y1 = pp.strain_rate_causal(strain, dt_sec=dt_sec, smooth_sec=smooth_sec)
     assert y1.shape == strain.shape
     assert np.allclose(y1[0], 0.0)
 
-    k = int(rng.integers(1, T))
     strain2 = strain.copy()
     strain2[k:] = rng.standard_normal((T - k, D))
-    y2 = pp.strain_rate_causal(strain2, dt_sec=60.0, smooth_sec=smooth)
+    y2 = pp.strain_rate_causal(strain2, dt_sec=dt_sec, smooth_sec=smooth_sec)
 
     assert np.allclose(y1[:k], y2[:k], atol=1e-9), (
-        f"strain_rate_causal leaked future (k={k}, smooth={smooth})"
+        f"strain_rate_causal leaked future (k={k}, smooth={smooth_sec})"
     )
 
 
@@ -143,3 +144,36 @@ def test_decimate_causal_deterministic(case):
     rng = np.random.default_rng(seed)
     x = rng.standard_normal((N, D)).astype(np.float64)
     assert np.array_equal(pp.decimate_causal(x, R), pp.decimate_causal(x, R))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  strain_rate_causal: y[0]==0 + non-vacuous
+# ─────────────────────────────────────────────────────────────────────────────
+
+@settings(max_examples=100, deadline=None)
+@given(_sr_case())
+def test_strain_rate_causal_y0_is_zero(case):
+    """y[0] must be exactly 0 — no data exists before the recording starts."""
+    T, D, dt_sec, smooth_sec, k, seed = case
+    rng = np.random.default_rng(seed)
+    strain = rng.standard_normal((T, D)).astype(np.float64)
+    y = pp.strain_rate_causal(strain, dt_sec=dt_sec, smooth_sec=smooth_sec)
+    assert np.allclose(y[0], 0.0, atol=1e-8), "y[0] != 0"
+
+
+@settings(max_examples=100, deadline=None)
+@given(_sr_case())
+def test_strain_rate_causal_not_vacuous(case):
+    """Perturbing strain[k] MUST change y[k] — otherwise the test is meaningless."""
+    T, D, dt_sec, smooth_sec, k, seed = case
+    rng = np.random.default_rng(seed)
+    strain = rng.standard_normal((T, D)).astype(np.float64)
+    y1 = pp.strain_rate_causal(strain, dt_sec=dt_sec, smooth_sec=smooth_sec)
+
+    strain2 = strain.copy()
+    strain2[k] += 1000.0
+    y2 = pp.strain_rate_causal(strain2, dt_sec=dt_sec, smooth_sec=smooth_sec)
+
+    assert not np.allclose(y1[k], y2[k], atol=1e-8), (
+        f"perturbation at strain[{k}] did NOT change y[{k}] — vacuous test"
+    )

@@ -8,7 +8,7 @@
 
 **[Li, Jin, Hammack, Kohnke, Wu, 2024]** Сердцевидный (heart-shaped) сигнал на LF-DAS strain rate waterfall plot — экстенсионный прекурсор frac-hit; установлена сильная линейная корреляция между peak distance сигнала и расстоянием до tip'а гидроразрыва. Применимо к полевым данным HFTS2.  
 **DOI:** [10.2118/223631-pa](https://doi.org/10.2118/223631-pa)  
-**PDF:** [SPE Journal, Vol. 29, No. 6, pp. 7122–7132](https://doi.org/10.2118/223631-pa)
+**PDF:** [SPE Journal, Vol. 29, No. 12, pp. 7122–7133](https://doi.org/10.2118/223631-pa)
 
 **Релевантность:**  
 - **wedge_near.py:** heart-shaped signal — это и есть "wedge" в физической модели. Peak distance ↔ tip distance — линейное соотношение, которое можно использовать как prior для FWHM-экстраполяции w→0.  

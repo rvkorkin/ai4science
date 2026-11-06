@@ -44,6 +44,8 @@ ai4science-hw2/
     ├── consensus_uncertainty.py / gen_soft_labels.py / localize.py /
     │   wedge_localize.py / analyze_ab.py / compute_detection.py / fix_labels.py
     │                         расширение §8 (неопределённость разметки → soft-labels)
+    ├── CausalPreprocess.lean Lean 4: формальное доказательство каузальности (§9)
+    ├── LEAN_CAUSALITY.md     связь Lean ↔ numpy ↔ Hypothesis
     └── results/             РЕЗУЛЬТАТЫ численного эксперимента (CSV + JSON + PNG)
 ```
 
@@ -250,3 +252,37 @@ pairloo-OOF чисел проекта (`deploy/RUNS.md`: config C AUC 0.960 OOF)
 
 Артефакты: `results/soft_labels_full.csv`, `results/consensus_uncertainty.csv`,
 `results/ab_time_eval.json`, `results/stg28_wedge.png`.
+
+---
+
+## 9. Формальная верификация каузальности (Lean 4)
+
+Инвариант каузальности, ранее проверявшийся на случайных сэмплах через Hypothesis
+(§3.A, property-тесты), **доказан формально для всех входов** — не выборки, а ∀x.
+
+**Инструмент:** Lean 4, Mathlib, checker SciLib (scilibai.ru/grag, GRC21).
+**Статус:** `success: true`, 0 sorry / admit / axiom.
+**Файл:** `verify/CausalPreprocess.lean` (пояснение — `verify/LEAN_CAUSALITY.md`).
+
+### 4 теоремы
+
+| Теорема | Метод | Суть |
+|---|---|---|
+| `bdiff_causal` | case split (n=0 / n+1) | backward-diff каузален: `y[t]` зависит только от `strain[:t+1]` |
+| `ewma_causal` | индукция по `i` | EWMA каузален: `s[t]` зависит только от `x[:t+1]` |
+| `P_causal` | композиция | вся цепочка: `P a R x i` зависит только от `x[j]` при `j ≤ i·R` |
+| `P_zero` | simp | граница `P a R x 0 = 0` ↔ тест `test_strain_rate_causal_y0_is_zero` |
+
+Lean-модель точно соответствует numpy `src/preprocess.py`: `bdiff` ↔ обратная разность
+с нулём в начале, `ewma` ↔ каузальная EWMA-рекурсия (база `ewma a x 0 = x 0` = `s = dr.copy()`),
+`decim` ↔ `s[::R]`.
+
+### Трёхуровневая верификация
+
+```
+уровень 1  →  валидатор данных (validate_data.py)   — схема + физика npz
+уровень 2  →  Hypothesis property-тесты              — каузальность на случайных входах
+уровень 3  →  Lean 4 formal proof                    — ∀x, ∀y, каузальность доказана
+```
+
+Уровень 3 — финальный: от случайных сэмплов к полному ∀-квантору.

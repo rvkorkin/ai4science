@@ -125,6 +125,16 @@
 
 ---
 
+## 8. Ре-верификация Goose (2026-11-14)
+
+- **Команда 1:** `C:\Users\rkorkin\rkorkin\shad_env\Scripts\python.exe -m pytest -q checks`
+  **Итог:** `14 passed, 6 skipped in 2.31s`.
+- **Команда 2:** `C:\Users\rkorkin\rkorkin\shad_env\Scripts\python.exe checks\experiment.py smoke`
+  **Итог:** `ПРОЙДЕН (smoke)` — AUC causal 0.532 → leaky 0.947, ΔAUC +0.415, p_holm=0.0207.
+- **Вердикт:** ✅
+
+---
+
 ## Как перепроверить всё разом
 
 ```cmd

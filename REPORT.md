@@ -132,8 +132,17 @@ python -m pytest -q checks   →   20 passed                 (с TL_CORE: +6 lea
 |---|---|---|---|---|
 | центральная разность `(s[t+1]−s[t−1])/2dt` в `strain_rate_causal` → использует будущее | внесённая | `test_strain_rate_causal_no_future_leak` | `checks/results/caught_error_before.txt` (`2 failed, 12 passed`) | `checks/results/caught_error_after.txt` (`14 passed, 6 skipped`) |
 
-Воспроизвести «до»: ветка `hw2-injected-bug` (один коммит с багом), затем
-`python -m pytest -q checks`.
+Воспроизвести «до» (минимальный патч, 4 строки в `src/preprocess.py` функция
+`strain_rate_causal`, после `dr[0] = 0.0`):
+
+```diff
+- dr[1:] = (strain[1:] - strain[:-1]) / dt_sec
++ # центральная разность использует БУДУЩИЙ strain[t+1] → look-ahead-утечка
++ dr[1:-1] = (strain[2:] - strain[:-2]) / (2.0 * dt_sec)
++ dr[-1] = (strain[-1] - strain[-2]) / dt_sec
+```
+Затем `python -m pytest -q checks` → `2 failed, 12 passed, 6 skipped`
+(`test_strain_rate_causal_no_future_leak` ловит утечку). Откат патча → `14 passed`.
 
 Дополнительно поймана **настоящая** ошибка: `label_T_mismatch` в 9 записях CrownQuest (T в
 сырых 10-с сэмплах против минутного npz) — исправлено `fix_labels.py`, стало 0.

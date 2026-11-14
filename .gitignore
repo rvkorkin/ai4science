@@ -30,6 +30,10 @@ field_strongest_hits.json
 .goose/
 .tools/
 
+# HW3 scenario runtime (fixtures are regenerated deterministically; state is local)
+scenario/fixtures/
+scenario/state/
+
 # OS / editors
 .DS_Store
 .vscode/

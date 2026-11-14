@@ -6,7 +6,7 @@ Plan:
   3. Run the schema/physical validator over all *.npz -> per-file CSV + summary JSON.
   4. Audit core/split.json: train/val stem disjointness, label coverage,
      tpk-in-range, and treatment-well group overlap.
-  5. Write a combined machine-readable report to verify/results/.
+  5. Write a combined machine-readable report to checks/results/.
 
 Run:
     python run_experiment.py            # uses FIELD_DATA_DIR from .env

@@ -1,0 +1,9 @@
+{
+  "done": [
+    "bad_dt.npz",
+    "bad_missing_key.npz",
+    "bad_nan.npz",
+    "rec_hit.npz",
+    "rec_nohit.npz"
+  ]
+}

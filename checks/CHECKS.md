@@ -14,7 +14,7 @@
 
 - **Команда (standalone, без полевых данных):**
   ```cmd
-  cd verify & %PYEXE% -m pytest -q
+  cd checks & %PYEXE% -m pytest -q
   ```
 - **Результат:** `14 passed, 6 skipped in ~2.0s`. Skipped — leakage-тесты, которым
   нужны полевые данные (вне репо).
@@ -35,7 +35,7 @@
 
 - **Команда:**
   ```cmd
-  cd verify & %PYEXE% run_experiment.py
+  cd checks & %PYEXE% run_experiment.py
   ```
 - **Результат:** 626 / 626 файлов прошли без ошибок (0 hard-fail).
   Предупреждения: `strain_rate_extreme` 327, `dz_out_of_range` 48,
@@ -55,7 +55,7 @@
   сэмплах, а npz уже децимирован до минут.
 - **Команда:**
   ```cmd
-  cd verify & %PYEXE% fix_labels.py
+  cd checks & %PYEXE% fix_labels.py
   ```
 - **Результат:** 9 записей нормализованы к минутной сетке → `label_T_mismatch` = 0.
   Остаётся `label_D_mismatch` = 1 (отмечена для ручной проверки).
@@ -66,7 +66,7 @@
 
 ## 4. Формальная верификация каузальности (Lean 4)
 
-- **Команда:** MCP `lean_check` на `verify/CausalPreprocess.lean` (checker SciLib GRC21).
+- **Команда:** MCP `lean_check` на `checks/CausalPreprocess.lean` (checker SciLib GRC21).
 - **Результат:** `success: true`; 0 `sorry` / 0 `admit` / 0 `axiom`.
   Доказаны 4 теоремы: `bdiff_causal`, `ewma_causal`, `P_causal`, `P_zero`.
 - **Проверка на заглушки:** `grep -i "sorry|admit|axiom|native_decide"` → совпадений нет.
@@ -96,13 +96,42 @@
 
 ---
 
+## 6. Численный эксперимент K4: цена look-ahead-утечки
+
+- **Команда:**
+  ```cmd
+  cd checks & %PYEXE% experiment.py
+  ```
+- **Условия:** синтетика, 5 seed (0–4), парное сравнение causal vs leaky нормировки,
+  правило принятия предзадано в `METHOD.md §5`.
+- **Результат:** AUC causal 0.479 → leaky 0.927, ΔAUC +0.448, 95%CI(t) [+0.376, +0.519],
+  d_z 7.76, Холм p 0.0001 (AUC) / 0.0001 (AP). Правило принятия выполнено.
+- **Артефакты:** `checks/results/experiment_metrics.json`, `experiment_runs.csv`.
+- **Вердикт:** ✅ look-ahead-утечка материально завышает метрику → верификатор каузальности
+  обоснован количественно.
+- **Дата:** 2026-11-14.
+
+---
+
+## 7. Пойманная ошибка (внесённый баг) — «до/после»
+
+- **Что:** центральная разность `(s[t+1]−s[t−1])/2dt` в `strain_rate_causal` (использует будущее).
+- **Команда:** ветка `hw2-injected-bug`, затем `cd checks & %PYEXE% -m pytest -q`.
+- **Результат «до»:** `2 failed, 12 passed` (`checks/results/caught_error_before.txt`);
+  поймал `test_strain_rate_causal_no_future_leak`. **«После»** (ветка `hw2`):
+  `14 passed, 6 skipped` (`checks/results/caught_error_after.txt`).
+- **Вердикт:** ✅ property-тест причинности ловит look-ahead.
+- **Дата:** 2026-11-14.
+
+---
+
 ## Как перепроверить всё разом
 
 ```cmd
 set PYEXE=C:\Users\rkorkin\rkorkin\shad_env\Scripts\python.exe
-cd verify
+cd checks
 %PYEXE% -m pytest -q            REM п.1
 %PYEXE% run_experiment.py       REM п.2 (нужен FIELD_DATA_DIR в .env)
 ```
 Lean (п.4) проверяется через MCP `lean_check` в среде AI4Science; A/B (п.5) требует
-GPU и данных проекта. Результаты зафиксированы под git-меткой `hw2-v1`.
+GPU и данных проекта. Результаты зафиксированы под git-меткой `hw2`.

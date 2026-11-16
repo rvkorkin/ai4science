@@ -1,27 +1,44 @@
-# STATUS.md — где работа сейчас
+# STATUS
 
-**Дата последнего обновления:** 2026-11-16.
-**Текущая цель:** собрать черновик тезисов статьи 2–4 стр. к мини-конференции (неделя 10).
+**Branch**: `article` · **Tag**: `article-v1` · **PDF**: `article.pdf` (4 pages main + 1 page refs/ai-usage)
 
-## Что сделано
+## Where we are
 
-- ✅ ДЗ-1 (среда, vector RAG по 9 PDF, skills, `AGENT.md`).
-- ✅ ДЗ-2 (верификатор каузальности + валидатор данных + K4-эксперимент + Lean) — **frozen** на ветке `hw2`, метка `hw2`, тег `hw2`.
-- ✅ Литобзор `LITREVIEW.md` (9 источников, DOI сверены).
-- ✅ Черновик статьи `README.md` (нуждается в правке под шаблон тезисов и под онтологию).
-- ✅ Каркас проекта статьи (`AGENTS.md`, `STATUS.md`, `diary.md`, `ONTOLOGY.yaml`, `GLOSSARY.md`, `WRITING.md`, `openspec/`, `checks/`) — ← **этот коммит**.
+Article **submitted** to the week-10 AI4Science-YSDA mini-conference.
+Using the official template `ai4science_ysda2026.sty` (two-column, bibtex).
+Language: Russian (English version pending agreement with instructor).
 
-## Что осталось (по приоритету)
+## Artifacts
 
-1. **Переписать `README.md` под шаблон тезисов** (аннотация → введение → методология → проверка → результаты → ограничения → вывод, ≤4 стр).
-2. **Синхронизировать текст с `ONTOLOGY.yaml` и `GLOSSARY.md`** (каждое введение символа — через глоссарий; каждая сущность — через онтологию).
-3. **Таблицы результатов.** В «Проверке»: пересказ K4-эксперимента из ДЗ-2 (ΔAUC +0.45). В «Результатах»: детекция SeqCNNGRU (AUC 0.881→0.915 soft-labels).
-4. **Ограничения** — честный раздел (синтетика в K4, single-seed A/B на GPU, well-group leak=20).
-5. **Пометки авторства** inline + таблица в конце.
-6. **Финальная сверка** всех DOI и цифр против источников/артефактов.
+| Path | What it is |
+|------|------------|
+| `article.tex`, `refs.bib` | Paper source and bibliography (15 refs, all papers/conferences with DOI) |
+| `article.pdf` | Compiled paper, committed for convenience |
+| `figs/` | Figures used in the paper (LF-DAS diagram, FORGE stage, two-hump P(hit)) |
+| `ai4science_ysda2026.{sty,bst}`, `algorithm*.sty`, `fancyhdr.sty` | Template files, committed at root so `pdflatex ; bibtex ; pdflatex ; pdflatex` works out of the box |
+| `METHOD.md` | Methodology text supporting §2–§4 |
+| `LITREVIEW.md` | Expanded literature review draft |
+| `AGENTS.md`, `AGENT.md` | How AI assistants are used in this project (course rubric R6) |
+| `WRITING.md` | Style guide (register, abbreviations, Russian/English switch) |
+| `GLOSSARY.md`, `ONTOLOGY.yaml` | Symbols and entity/relation map used in the paper |
+| `openspec/REQUIREMENTS.md` | Acceptance criteria R1–R8 for the article |
+| `diary.md` | Session-by-session log of decisions |
+| `checks/` | Verification stack carried over from HW2: `validate_data.py`, `test_*.py`, `experiment.py` (leak-cost, 5 seeds), `CausalPreprocess.lean` (4 theorems, 0 sorry) |
+| `src/preprocess.py`, `src/wedge_near.py` | Code under verification |
 
-## Блокеров нет.
+## How to reproduce
 
-## Следующий сеанс
+```powershell
+# Paper
+pdflatex article ; bibtex article ; pdflatex article ; pdflatex article
 
-Открыть `README.md`, разделить на 7 разделов по шаблону, перенести блоки литобзора/результатов из существующих файлов, убрать всё, что не подтверждено источником. Правила языка — `WRITING.md`.
+# Verification + leak-cost experiment
+python -m pytest -q checks
+```
+
+Environment: Python 3.11, numpy 1.26, torch 2.3, scikit-learn 1.5, Lean 4 + SciLib,
+MiKTeX 24.1.
+
+## Last commit
+
+See `git log --oneline -1` on branch `article`. Tag `article-v1` marks the submitted PDF.

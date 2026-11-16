@@ -58,4 +58,8 @@ __pycache__/
 *.nav
 *.snm
 *.vrb
-article.pdf
+# article.pdf is intentionally committed so the final PDF is available in the repo
+# Template folder leftovers (we keep only the .sty/.bst at repo root)
+ai4science_ysda2026_template/figures/
+ai4science_ysda2026_template/paper.bib
+ai4science_ysda2026_template/paper.tex

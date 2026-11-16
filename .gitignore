@@ -53,7 +53,7 @@ __pycache__/
 *.blg
 *.fls
 *.fdb_latexmk
-*.synctex.gz
+*.synctex*
 *.run.xml
 *.nav
 *.snm

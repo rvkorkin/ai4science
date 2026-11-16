@@ -44,7 +44,7 @@ every learned predictor --- so the deployable system reports a three-state alarm
 kinematics only in the last minutes for a refined ETA. The detector is a ResNet-18 backbone
 pretrained on ImageNet coupled with a one-directional GRU over minute embeddings, scanned
 across the fibre in overlapping fixed-depth windows (multiple-instance learning). On a
-field corpus of 638 stage recordings with 144 hand-built hit labels across eight basins,
+field corpus of 626 stage recordings with 144 hand-built hit labels across eight basins,
 the deployed model achieves PR-AUC $0.919$, recall $0.867$ at FAR $0.080$, and a median
 lead time of 47\,min. A separate verification stack --- schema validator, Hypothesis
 property tests, and a Lean~4 formal proof of causal preprocessing --- quantifies the cost
@@ -76,7 +76,7 @@ rests on strict causality of the preprocessing --- and on being able to prove it
 % ─────────────────────────────────────────────────────────────────────────
 \section{Signal and data}
 \label{sec:data}
-Figure~\ref{fig:das} sketches the acquisition geometry. The corpus comprises 638 stage
+Figure~\ref{fig:das} sketches the acquisition geometry. The corpus comprises 626 stage
 recordings with 144 hand-built hit labels across HFTS-2 (389 records, 128 hits),
 Vineyard (56, 9), Laja/YPF (64, 5), FORGE (8, 2)~\cite{kuznetsov2026utahforge},
 CrownQuest, PetroHunt, Vista and several smaller fields. Labelling is manual --- there is no ground truth --- and ambiguous cases
@@ -115,14 +115,15 @@ stream in time order and emits two heads: a Bernoulli hit probability $P(\text{h
 regression head returning $(\mu, \log\sigma)$ for the remaining-time estimate.
 
 \textbf{Multiple-instance scan.} Rather than one network per recording, the same network
-is applied in fixed-size depth windows of 64, 128 and 256\,m with 50\% overlap. File-level
-probability is the max over windows, and the per-depth location is simply the window of the
-maximum. This keeps the same operator across fields of different geometries and discourages
+is applied in fixed-size depth windows of $128$\,m with a $64$\,m stride (50\% overlap);
+the window length and stride are read from the deployed checkpoint. File-level probability
+is the max over windows, and the per-depth location is the window of the maximum. This keeps the same operator across fields of different geometries and discourages
 the model from memorising per-field band placement.
 
 \textbf{Traffic-light output.} Rather than report minutes, the UI shows one of three colours.
-Red latches once lit, yellow is instantaneous, and red requires $\text{persist}=3$ consecutive
-minutes above $\mathrm{thr}_\text{red}=0.199$; yellow uses $\mathrm{thr}_\text{yel}=0.115$.
+Red is non-latching with a 1-minute hold and requires $\text{persist}=3$ consecutive
+minutes above $\mathrm{thr}_\text{red}=0.199$; yellow is instantaneous and uses
+$\mathrm{thr}_\text{yel}=0.115$.
 Thresholds are tied to the deployed checkpoint and were selected on the full field corpus by
 tolerated false-alarm rate over \emph{files}, not rows (the operator sees one alarm per
 recording). In the last few minutes, when the classical FWHM-wedge extrapolation becomes
@@ -194,8 +195,8 @@ depth window; the classical ETA pulls in during the last few minutes.
 \centering
 \includegraphics[width=0.70\linewidth]{figs/forge8_2.png}
 \caption{A clean FORGE stage, live. The strain-rate waterfall (top-right) shows the
-converging wedge; $P(\text{hit})$ saturates minutes before the event; red latches; the
-3D view highlights the active depth window.}
+converging wedge; $P(\text{hit})$ saturates minutes before the event; the traffic light
+turns red (non-latching, 1-min hold); the 3D view highlights the active depth window.}
 \label{fig:forge}
 \end{figure}
 

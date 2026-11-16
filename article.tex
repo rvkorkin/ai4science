@@ -17,6 +17,7 @@
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{subcaption}
+\usepackage{placeins}
 \usepackage{xcolor}
 \usepackage{csquotes}
 \usepackage[hidelinks]{hyperref}
@@ -189,9 +190,9 @@ Figure~\ref{fig:forge} shows a representative FORGE stage: the converging wedge 
 in the waterfall; the alarm goes red well before the hit; the 3D inset marks the active
 depth window; the classical ETA pulls in during the last few minutes.
 
-\begin{figure}[h]
+\begin{figure}[!ht]
 \centering
-\includegraphics[width=0.78\linewidth]{figs/forge8_2.png}
+\includegraphics[width=0.70\linewidth]{figs/forge8_2.png}
 \caption{A clean FORGE stage, live. The strain-rate waterfall (top-right) shows the
 converging wedge; $P(\text{hit})$ saturates minutes before the event; red latches; the
 3D view highlights the active depth window.}
@@ -204,9 +205,9 @@ stage labelled with one hit, the per-window $P(\text{hit})$ produces two clearly
 peaks. Looking back at the waterfall, the second event is really there and had been missed
 by human review.
 
-\begin{figure}[h]
+\begin{figure}[!ht]
 \centering
-\includegraphics[width=0.45\linewidth]{figs/twohump_Phit.png}
+\includegraphics[width=0.38\linewidth]{figs/twohump_Phit.png}
 \caption{File-level $P(\text{hit})$ over time on an HFTS-2 stage labelled with a single hit
 (green dotted). The windowed MIL scan returns two cleanly separated peaks; the second one,
 previously unlabelled, is a real event confirmed by reinspection of the waterfall.}
@@ -237,6 +238,7 @@ and empirically shown to be worth $+0.45$ AUC if violated. Future work is an hon
 leave-one-field-out of the ResNet recipe, more data on the sparse fields, and a formal
 treatment of the GRU warm-up.
 
+\FloatBarrier
 \printbibliography[title={References}]
 
 \section*{Use of AI assistants}

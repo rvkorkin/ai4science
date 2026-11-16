@@ -1,0 +1,109 @@
+# ONTOLOGY.yaml — объекты задачи и связи между ними
+#
+# Формат: entities = словарь (id → {type, aliases, definition_ref, units, notes}),
+#         relations = список (subject, predicate, object).
+# Каждый термин, встречающийся в тексте статьи, должен быть здесь или в GLOSSARY.md.
+# `definition_ref` указывает, где термин формально определён (GLOSSARY, DOI, файл).
+
+version: "0.1"
+project: "Ранее обнаружение frac-hit по LF-DAS: клин, каузальность, soft-labels"
+
+entities:
+
+  # ─── Физика / сигналы ─────────────────────────────────────────────────────
+  LF_DAS:
+    type: measurement_modality
+    aliases: [low-frequency DAS, низкочастотный распределённый акустический сенсор]
+    definition_ref: GLOSSARY.md#LF-DAS
+    notes: fiber-optic sensing, 0.01–1 Hz полоса; меряет strain/strain-rate вдоль волокна
+  strain:
+    type: physical_field
+    units: dimensionless (nε или относительные)
+    axes: [time, depth_channel]
+  strain_rate:
+    type: physical_field
+    units: 1/s
+    derived_from: strain
+    definition_ref: src/preprocess.py#strain_rate_causal
+  wedge:
+    type: pattern
+    aliases: [heart-shaped strain-rate zone, Leggett wedge]
+    definition_ref: "DOI:10.2118/202482-PA (Liu et al. 2020)"
+    notes: >
+      двулучевой signature, сходящийся «в нить» в момент frac-hit;
+      ширина w(t) → 0 к моменту прихода трещины
+  frac_hit:
+    type: event
+    aliases: [fracture hit, прорыв трещины ГРП]
+    definition_ref: GLOSSARY.md#hit
+    time_label: t_hit  # см. GLOSSARY
+    depth_label: d_hit
+
+  # ─── Данные / разметка ────────────────────────────────────────────────────
+  field_data_enriched:
+    type: dataset
+    size: 626 npz
+    schema: "(T, D) strain + strain_rate + depth + dt_sec"
+    license: closed (SLB field)
+    outside_repo: true  # политика ДЗ-1/2
+  manual_label:
+    type: label_source
+    confidence: medium
+    notes: ручная (t_hit, d_hit) — зашумлена
+  consensus_label:
+    type: label_source
+    aliases: [soft-label]
+    composed_of: [manual_label, activity_peak, wedge_collapse_sr]
+    aggregator: "robust median (MAD, |z|>2 отбрасывается)"
+
+  # ─── Предобработка (из src/preprocess.py) ────────────────────────────────
+  causal_preprocess:
+    type: pipeline
+    components: [spatial_smooth, strain_rate_causal, decimate_causal]
+    invariant: "output[i] depends only on input ≤ i·R"
+    verified_by: [checks/test_causality.py, checks/CausalPreprocess.lean]
+  look_ahead_leak:
+    type: bug_class
+    opposite_of: causal_preprocess
+    cost_measured_by: checks/experiment.py
+    empirical_cost: "ΔAUC ≈ +0.45 (inflated); см. checks/results/experiment_metrics.json"
+
+  # ─── Модель ────────────────────────────────────────────────────────────────
+  SeqCNNGRU:
+    type: model
+    aliases: ["config C", "TrafficLight model"]
+    inputs: [strain, strain_rate]  # оконные (T_win, D)
+    outputs: [p_hit, t_hit_pred, d_hit_pred]
+    notes: GRU-time × CNN-depth, window-level
+
+  # ─── Метрики ───────────────────────────────────────────────────────────────
+  AUC_window:
+    type: metric
+    aliases: [window-level AUC]
+    baseline_value: 0.960  # honest pairloo OOF, config C
+  recall_at_FAR:
+    type: metric
+    aliases: [recall @ FAR ≤ x]
+    notes: "x = 0.10 (K4) или 0.30 (deploy)"
+  lead_time:
+    type: metric
+    units: минуты
+    definition: "t_pred − t_true (median)"
+    baseline_value: 38  # median lead, config C
+
+relations:
+  # кто от чего зависит
+  - [strain_rate,       derived_from,         strain]
+  - [wedge,              signature_of,         frac_hit]
+  - [causal_preprocess,  prevents,             look_ahead_leak]
+  - [checks/test_causality.py, verifies,       causal_preprocess]
+  - [checks/CausalPreprocess.lean, formally_proves, causal_preprocess]
+  - [checks/experiment.py, quantifies_cost_of, look_ahead_leak]
+  - [consensus_label,    aggregates,           manual_label]
+  - [consensus_label,    aggregates,           wedge]   # через wedge_collapse_sr
+  - [SeqCNNGRU,          trained_on,           consensus_label]
+  - [SeqCNNGRU,          evaluated_by,         AUC_window]
+  - [SeqCNNGRU,          evaluated_by,         recall_at_FAR]
+  - [SeqCNNGRU,          evaluated_by,         lead_time]
+  - [field_data_enriched, labeled_by,          manual_label]
+  - [field_data_enriched, labeled_by,          consensus_label]

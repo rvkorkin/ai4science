@@ -1,23 +1,21 @@
 % article.tex --- Тезисы, курс ШАД «ИИ-ассистенты для исследователя. AI4Science», неделя 10.
-% Компиляция: latexmk -xelatex article.tex    (или в Overleaf: XeLaTeX)
+% Компиляция: pdflatex article.tex ; biber article ; pdflatex article.tex ; pdflatex article.tex
+% или:        latexmk -pdf article.tex
+% (в Overleaf: Compiler = pdfLaTeX)
 
 \documentclass[11pt,a4paper]{article}
 \usepackage[a4paper,margin=2cm]{geometry}
 
-% ─── Язык и шрифт (XeLaTeX) ───────────────────────────────────────────────
-\usepackage{polyglossia}
-\setmainlanguage{russian}
-\setotherlanguage{english}
-\usepackage{fontspec}
-\setmainfont{CMU Serif}        % свободный, есть на Overleaf; fallback → Latin Modern
-\setsansfont{CMU Sans Serif}
-\setmonofont{CMU Typewriter Text}
+% ─── Язык (pdfLaTeX, кириллица через T2A) ────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T2A,T1]{fontenc}
+\usepackage[english,russian]{babel}
+\usepackage{lmodern}
 
 % ─── Пакеты ───────────────────────────────────────────────────────────────
 \usepackage{amsmath,amssymb}
 \usepackage{booktabs}
 \usepackage{array}
-\usepackage{microtype}
 \usepackage[hidelinks]{hyperref}
 \usepackage[style=numeric,backend=biber,sorting=none,maxbibnames=5]{biblatex}
 \addbibresource{refs.bib}

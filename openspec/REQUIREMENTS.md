@@ -68,10 +68,10 @@
 
 ## R7. Длина
 
-2–4 страницы A4, собранные XeLaTeX из `article.tex` (11pt, `geometry margin=2cm`,
-`CMU Serif`).
+2–4 страницы A4, собранные pdfLaTeX из `article.tex` (11pt, `geometry margin=2cm`,
+`lmodern`, кириллица через `T2A` + `babel[russian]`).
 
-**Приёмка:** `latexmk -xelatex article.tex` соберётся без ошибок,
+**Приёмка:** `latexmk -pdf article.tex` соберётся без ошибок,
 `pdfinfo article.pdf | grep Pages` → значение ≤ 4.
 
 ## R8. Источники

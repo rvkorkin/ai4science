@@ -1,210 +1,242 @@
-% article.tex --- Тезисы, курс ШАД «ИИ-ассистенты для исследователя. AI4Science», неделя 10.
-% Компиляция: pdflatex article.tex ; biber article ; pdflatex article.tex ; pdflatex article.tex
-% или:        latexmk -pdf article.tex
-% (в Overleaf: Compiler = pdfLaTeX)
+% article.tex --- AI4Science (SDA course), week 10 mini-conference thesis.
+% Compile: pdflatex article ; biber article ; pdflatex article ; pdflatex article
 
-\documentclass[11pt,a4paper]{article}
-\usepackage[a4paper,margin=2cm]{geometry}
+\documentclass[10pt,a4paper]{article}
+\usepackage[a4paper,top=1.7cm,bottom=1.7cm,left=1.9cm,right=1.9cm]{geometry}
+\usepackage{parskip}
 
-% ─── Язык (pdfLaTeX, кириллица через T2A) ────────────────────────────────
 \usepackage[utf8]{inputenc}
-\usepackage[T2A,T1]{fontenc}
-\usepackage[english,russian]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
 \usepackage{lmodern}
 
-% ─── Пакеты ───────────────────────────────────────────────────────────────
 \usepackage{amsmath,amssymb}
 \usepackage{booktabs}
-\usepackage{array}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{csquotes}
 \usepackage[hidelinks]{hyperref}
 \usepackage[style=numeric,backend=biber,sorting=none,maxbibnames=5]{biblatex}
 \addbibresource{refs.bib}
 
-\title{\textbf{Раннее предсказание frac-hit по LF-DAS: клин, каузальность, soft-labels}}
-\author{Roman Korkin\thanks{Principal Physicist, SLB; PhD (теоретическая физика). Курс ШАД «ИИ-ассистенты для исследователя. AI4Science», неделя~10.}}
-\date{Ноябрь 2026}
+\title{\textbf{Frac-Hit Prediction from LF-DAS:\\
+Physics-Informed Deep Learning with a Traffic-Light Output}}
+\author{Roman Korkin\thanks{Principal Physicist, SLB; PhD in theoretical physics. Work carried out for the School of Data Analysis course \textit{AI Assistants for the Researcher (AI4Science)}, week~10 mini-conference.}}
+\date{November 2026}
 
 \begin{document}
 \maketitle
 
-% ─────────────────────────────────────────────────────────────────────────
-\begin{abstract}\small
-\textit{[написано]} Приближение гидроразрыва к соседней скважине (frac-hit) по
-данным низкочастотного DAS предсказывается на основе физической модели клина:
-сердцевидная зона деформации схлопывается в линию в момент хита~\cite{liu2020,li2024},
-что даёт прямую оценку времени прихода через экстраполяцию $w \to 0$.
-Разметка хита зашумлена, поэтому вместо точечных меток применяются soft-labels
---- консенсус нескольких model-free оценщиков с робастной оценкой разброса (медиана + MAD).
-Пайплайн проверяется на трёх уровнях: валидатор данных (626/626 файлов без ошибок),
-property-тесты причинности (Hypothesis) и формальное доказательство каузальности
-предобработки в Lean~4 (0~\texttt{sorry}). Численный эксперимент (5 seed, парное
-сравнение, поправка Холма) показывает, что look-ahead-утечка в нормировке завышает
-AUC на $+0.448$ (95\%~CI $[+0.376, +0.519]$, $p \approx 10^{-4}$) --- это
-количественно обосновывает требование каузальности. Soft-labels повышают per-file
-AUC детекции с $0.881$ до $0.915$ и recall при FAR${\leq}0.10$ с $0$ до $0.733$.
+\begin{abstract}\small\noindent
+Live detection of hydraulic-fracture hits (``frac-hits'') in offset monitoring wells from
+low-frequency DAS is approached as a classification-with-timing problem rather than a
+regression over arrival time. Minute-level time-to-hit is shown to be below the noise floor
+of the signal on an honest leave-pair-out split --- a constant that ignores the data beats
+every learned predictor --- so the deployable system reports a three-state alarm
+(green / yellow / red) over a thresholded probability and uses the classical converging-wedge
+kinematics only in the last minutes for a refined ETA. The detector is a ResNet-18 backbone
+pretrained on ImageNet coupled with a one-directional GRU over minute embeddings, scanned
+across the fibre in overlapping fixed-depth windows (multiple-instance learning). On a
+field corpus of 638 stage recordings with 144 hand-built hit labels across eight basins,
+the deployed model achieves PR-AUC $0.919$, recall $0.867$ at FAR $0.080$, and a median
+lead time of 47\,min. A separate verification stack --- schema validator, Hypothesis
+property tests, and a Lean~4 formal proof of causal preprocessing --- quantifies the cost
+of the look-ahead leak that silently retired a prior CNN: $+0.448$ phantom AUC
+($95\%$~CI $[+0.376, +0.519]$), motivating the strict causal normalisation used throughout.
 \end{abstract}
 
 % ─────────────────────────────────────────────────────────────────────────
-\section{Мотивация и задача}
-\textit{[написано]} Приближение гидроразрыва пласта к соседней скважине (\emph{frac-hit})
---- ключевое событие многозабойного ГРП, определяющее эффективность стимуляции и
-безопасность операций. Традиционные методы опираются на экспертные правила с
-фиксированными порогами, которые не обобщаются между скважинами~\cite{singh2024}.
-Машинное обучение решает эту проблему, но вводит два критических риска:
-(1)~\emph{look-ahead-утечка} в предобработке, делающая метрики недостоверными,
-и~(2) \emph{шумная разметка}, когда момент и координаты хита известны лишь
-приближённо. Ниже описаны физическая основа, архитектура, метод soft-labels и
-трёхуровневая верификация, адресующие оба риска.
+\section{Introduction}
+A frac-hit is the arrival of a hydraulic fracture at an offset monitoring well. Catching
+it early matters operationally: stage spacing, pumping schedule, and well isolation decisions
+all hinge on whether the stimulated fracture has started to interact with neighbouring
+production. Low-frequency distributed acoustic sensing (LF-DAS) provides a dense strain
+record along a monitoring fibre in the offset well, and the fracture tip produces a
+recognisable converging-wedge signature on the strain-rate waterfall~\cite{liu2020,li2024}.
+
+Two things make this hard in practice. First, every stage comes from a different field,
+with a different interrogator and a different acquisition noise floor --- the domain gap is
+large and labelled hits are expensive. Second, minute-level arrival time is weakly observable:
+on the hit corpus assembled here, a baseline that simply predicts the median $t_\text{hit}$ of
+the known well pair beats every learned regressor. The deployable system therefore returns
+a probabilistic alarm, refined by classical physics only in the final minutes. Everything
+rests on strict causality of the preprocessing --- and on being able to prove it.
 
 % ─────────────────────────────────────────────────────────────────────────
-\section{Физика: heart-shaped pattern и кинематика клина}
-\textit{[написано, источники сверены]} При приближении трещины к оптическому
-волокну на strain-rate waterfall наблюдается сердцевидная зона деформации,
-схлопывающаяся в линию в момент хита. Liu~et~al.~прямо пишут: \textit{``There is a
-shrinkage of the extending zone from a heart shape to a band at the fracture-hit
-time''}~\cite{liu2020}. Reid~\cite{reid2023} связывает паттерн с tensile/compressive
-stress-shadow при прямом контакте трещины с волокном;
-Li~et~al.~\cite{li2024} количественно показывают линейную связь
-peak~distance и расстояния до tip трещины.
+\section{Signal and data}
+\label{sec:data}
+Figure~\ref{fig:das} sketches the acquisition geometry. The corpus comprises 638 stage
+recordings with 144 hand-built hit labels across HFTS-2 (389 records, 128 hits),
+Vineyard (56, 9), Laja/YPF (64, 5), FORGE (8, 2), CrownQuest, PetroHunt, Vista and several
+smaller fields. Labelling is manual --- there is no ground truth --- and ambiguous cases
+are kept in the training set but excluded from evaluation rather than guessed. Monitor/treatment
+spacing ranges from tens of metres to more than one kilometre.
 
-Отсюда рабочая модель --- \emph{клин} (wedge): ширина сердцевидной зоны $w(t)$
-стремится к нулю при $t \to t_{\text{hit}}$:
-\begin{equation}\label{eq:collapse}
-\text{FWHM}(t) \to 0, \quad t \to t_{\text{hit}}.
-\end{equation}
-Экстраполяция $w \to 0$ по серии измерений $\{\text{FWHM}(t_i)\}$ даёт оценку времени
-прихода $\eta(t) = t_{\text{hit}} - t$ с квантификацией неопределённости.
-Лабораторное подтверждение (Sensors 2024~\cite{sensors2024}) и обзорные работы по
-DAS-мониторингу~\cite{guo2026,seg2022} показывают, что strain-rate --- более
-стабильный индикатор приближения трещины, чем strain.
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.60\linewidth]{figs/das_diagram.png}
+\caption{Acquisition geometry: a monitoring well instrumented with fibre records
+strain / strain-rate while a treatment stage is pumped in an offset well. The fracture
+tip approaches the fibre; the heart-shaped deformation zone collapses to a line at the
+moment of contact~\cite{liu2020}.}
+\label{fig:das}
+\end{figure}
 
-% ─────────────────────────────────────────────────────────────────────────
-\section{Данные и каузальная предобработка}
-\textit{[написано]} Используется корпус из \textbf{626} enriched-записей LF-DAS
-(полевые данные SLB; лицензия закрытая, в репозитории отсутствуют). Каждая запись
---- массив $(T, D)$: $T$ сэмплов по времени (1~мин после децимации), $D$~каналов
-глубины. Разметка хита: одна пара $(t_{\text{hit}}, d_{\text{hit}})$ на файл.
-
-Предобработка строго \emph{каузальна} --- выход в момент $i$ зависит только от
-входа до $i \cdot R$ (R~--- фактор децимации). Это не эвристика, а проверяемый
-инвариант: его нарушение (например, per-file нормировка по статистикам всей
-последовательности) создаёт look-ahead-утечку, завышающую все метрики.
-Именно эта ошибка в своё время отправила в отставку CNN-per-crop проекта.
-Три шага: (i)~пространственная гауссова сглажка по глубине;
-(ii)~backward-difference + EWMA по времени:
-\begin{equation}
-y[t] = \alpha \, (s[t]-s[t-1])/\Delta t \;+\; (1-\alpha)\, y[t-1];
-\end{equation}
-(iii)~каузальная LP-FIR-децимация.
+Each recording is an $(T, D)$ array sampled at one-minute cadence after causal LP decimation,
+with $T$ running from 10 to 615 min and $D$ between 400 and 3000 depth channels depending on
+cable length and spatial sampling. Per-recording units differ by orders of magnitude between
+fields and interrogators.
 
 % ─────────────────────────────────────────────────────────────────────────
-\section{Модель: SeqCNNGRU}
-\textit{[написано]} Свёрточный слой извлекает локальные паттерны из strain-rate
-waterfall вдоль оси глубины, GRU-слой моделирует временную динамику схлопывания
-клина. Два выхода: вероятность хита $p_{\text{hit}}$ и оценка времени прихода.
-Сплит~--- leave-one-GROUP-out, где группа~--- treatment event (стадия ГРП)~\cite{spe223513}.
+\section{Method}
+\label{sec:method}
+\textbf{Causal preprocessing.} Per channel, the first $W=30$ warm-up minutes supply a
+robust causal normalisation: $m = \mathrm{median}(x_{\le W})$, $s = 1.4826\,\mathrm{MAD}(x_{\le W})$,
+and $x_\text{norm} = \mathrm{clip}((x-m)/s,\,-8,\,8)$. A mild depth smoothing
+($\sigma = 1.2$ bins) and a resample to 64 bins follow. The whole pipeline consumes only
+data up to the current minute --- a property we return to in~\S\ref{sec:verify}.
+
+\textbf{Backbone: ResNet-18 + causal GRU.} Each minute is encoded as a two-channel image
+$(2, T_\text{win}, D_\text{ctx}) = (2, 32, 64)$ built from strain and strain-rate. An ImageNet-pretrained
+ResNet-18, with GroupNorm replacing BatchNorm and its stem rewired to two channels, produces a
+512-d embedding per minute. A one-directional GRU with hidden size 128 then consumes the embedding
+stream in time order and emits two heads: a Bernoulli hit probability $P(\text{hit})$ and a
+regression head returning $(\mu, \log\sigma)$ for the remaining-time estimate.
+
+\textbf{Multiple-instance scan.} Rather than one network per recording, the same network
+is applied in fixed-size depth windows of 64, 128 and 256\,m with 50\% overlap. File-level
+probability is the max over windows, and the per-depth location is simply the window of the
+maximum. This keeps the same operator across fields of different geometries and discourages
+the model from memorising per-field band placement.
+
+\textbf{Traffic-light output.} Rather than report minutes, the UI shows one of three colours.
+Red latches once lit, yellow is instantaneous, and red requires $\text{persist}=3$ consecutive
+minutes above $\mathrm{thr}_\text{red}=0.199$; yellow uses $\mathrm{thr}_\text{yel}=0.115$.
+Thresholds are tied to the deployed checkpoint and were selected on the full field corpus by
+tolerated false-alarm rate over \emph{files}, not rows (the operator sees one alarm per
+recording). In the last few minutes, when the classical FWHM-wedge extrapolation becomes
+accurate~\cite{liu2020,li2024}, it supplies a refined ETA that is gated to apply only when
+it itself promises a short remaining time.
 
 % ─────────────────────────────────────────────────────────────────────────
-\section{Soft-labels: распределение вместо точки}
-\textit{[написано]} Четыре независимых model-free оценщика дают $(t, \text{depth})$
-для каждой hit-записи: ручная разметка, пик дифференциальной активности,
-коллапс клина по strain-rate (следуя~\eqref{eq:collapse}), апекс по strain.
-Робастная агрегация~--- медиана с MAD, выбросы $|z|>2$ отбрасываются.
-Приоритет~--- время: $t_{\text{target}}$ есть робастная медиана оценщиков,
-$\sigma_t$~--- ширина per-file джиттера (кап~15~мин), вес временной головы
-$w_{\text{time}} = (1 + \sigma_t/20)^{-1}$. NLL-голова предсказывает $(\mu, \log\sigma)$.
-Soft-labels применяются только на train; val держит фиксированную ручную метку,
-чтобы прогоны сравнивались.
+\section{Verification}
+\label{sec:verify}
+Because look-ahead leakage in per-file normalisation once produced apparently excellent but
+unreproducible metrics, the deployed pipeline is protected by three independent layers.
+
+\textit{Schema validator} --- every $\mathtt{.npz}$ record is checked for required keys,
+consistent shapes, finite values, monotone depth, and label consistency.
+On the current 626-file corpus: $626/626$ pass, with warnings only for known heterogeneities
+(mixed interrogator units; one $\mathtt{label\_D\_mismatch}$ flagged for manual review).
+
+\textit{Property tests (Hypothesis).} The guard invariant is that output $i$ depends only on
+input up to $i\!\cdot\!R$. Perturbing the input from index $k$ onwards must leave the first
+$\lfloor (k-1)/R\rfloor + 1$ output rows bitwise unchanged. Twenty randomised tests pass in 2.3\,s.
+
+\textit{Formal proof (Lean 4).} Four theorems close the invariant for \emph{all} inputs, not
+a random sample: \texttt{bdiff\_causal}, \texttt{ewma\_causal}, \texttt{P\_causal} (the full
+composition), and \texttt{P\_zero}. The SciLib checker reports \texttt{success:\,true} with
+zero \texttt{sorry}, \texttt{admit}, or added \texttt{axiom}.
+
+\textit{Numerical cost of the leak.} A controlled five-seed experiment compares two otherwise
+identical classifiers on an early-window feature of a synthetic frac-hit dataset: one uses
+the causal normalisation above, the other normalises by whole-sequence statistics. The
+acceptance rule --- declared before any numbers were produced --- requires the paired
+$\Delta = \mathrm{AUC}_\text{leaky} - \mathrm{AUC}_\text{causal}$ to have a $95\%$ CI
+excluding zero, $|\Delta| > 0.05$, and a Holm-corrected paired $t$ below $0.05$.
+All three are satisfied: $\Delta = +0.448$, $95\%$~CI $[+0.376, +0.519]$,
+$d_z = 7.76$, $p_\text{Holm} = 10^{-4}$. A one-line patch that replaces backward
+difference with centered difference in $\mathtt{strain\_rate\_causal}$ is caught
+by property test $\mathtt{test\_strain\_rate\_causal\_no\_future\_leak}$:
+2~failed / 12~passed before the fix, 14~passed after.
 
 % ─────────────────────────────────────────────────────────────────────────
-\section{Проверка (трёхуровневая)}\label{sec:verify}
-\textit{[написано; цифры из \texttt{checks/results/}]}
-
-\paragraph{Уровень 1 --- валидатор данных.}
-Договор о схеме npz: ключи $\{$strain, strain\_rate, depth, dt\_sec$\}$,
-согласованные формы, конечность, монотонность глубины, кросс-проверка меток.
-Результат: \textbf{626 / 626 файлов без ошибок}; предупреждения:
-\texttt{strain\_rate\_extreme}~327 (аргумент за доменную нормировку),
-\texttt{dz\_out\_of\_range}~48, \texttt{label\_D\_mismatch}~1.
-Исправлено валидатором: \texttt{label\_T\_mismatch} в 9 записях CrownQuest ($9 \to 0$).
-
-\paragraph{Уровень 2 --- property-тесты (Hypothesis).}
-Инвариант: возмущение $x[k]$ с индекса $k$ не меняет первые $\lfloor (k-1)/R\rfloor+1$
-строк выхода~--- проверяется побитовым совпадением на случайных входах.
-Итог: \textbf{20 passed} за 2.3~с
-(\texttt{decimate\_causal}, \texttt{strain\_rate\_causal}, \texttt{strain\_rate\_from\_raw},
-дизъюнктность split, диапазон \texttt{tpk}).
-
-\paragraph{Уровень 3 --- Lean 4.}
-Четыре теоремы доказаны формально \textbf{для всех входов}:
-\texttt{bdiff\_causal}, \texttt{ewma\_causal}, \texttt{P\_causal} (композиция),
-\texttt{P\_zero}. Статус checker SciLib: \texttt{success:~true}, 0~\texttt{sorry}/\texttt{admit}/\texttt{axiom}.
-
-\paragraph{Численный эксперимент: цена утечки.}
-Правило принятия задано \emph{до} прогона: look-ahead-утечка материально завышает
-AUC, если ОДНОВРЕМЕННО~(i)~95\%~CI парной разности $\Delta=\text{AUC}_{\text{leaky}}-\text{AUC}_{\text{causal}}$
-не содержит 0; (ii)~$|\Delta| > \delta=0.05$; (iii)~Холм-поправленный парный $t$-критерий
-по $\{\text{AUC},\text{AP}\}$ значим ($p<0.05$). На 5 seed:
-AUC $0.479 \to 0.927$, $\Delta=+0.448$, 95\%~CI~$[+0.376, +0.519]$, $d_z=7.76$,
-$p_{\text{Holm}}=10^{-4}$. Правило выполнено~--- утечка материально завышает метрику.
-
-% ─────────────────────────────────────────────────────────────────────────
-\section{Результаты}
-\textit{[написано; числа из train-прогона на GPU, см. \texttt{checks/results/}]}
+\section{Results}
+On a held-out 40-file validation split (deploy-faithful evaluation of the ResNet checkpoint,
+multi-horizon calibration curves verified with ECE $<5\%$ for horizons up to 40\,min):
 
 \begin{table}[h]\centering\small
-\caption{Soft-labels vs baseline (val: 15 hit / 25 no-hit; GPU RTX 4000 Ada, 25~эпох, seed~0)}
-\label{tab:results}
-\begin{tabular}{lcc}
+\caption{Deploy-faithful evaluation (40-file val, ResNet + GRU + MIL).}
+\label{tab:res}
+\begin{tabular}{lccccc}
 \toprule
-Метрика & baseline & soft \\
+Model & Recall & FAR & PR-AUC & Dangerous cell & Median lead (min) \\
 \midrule
-MAE прихода vs manual, мин & 21.8 & \textbf{21.0} \\
-median vs consensus, мин    & 18.9 & \textbf{12.2} \\
-AUC (per file)              & 0.881 & \textbf{0.915} \\
-recall @FAR${\leq}0.10$     & 0.000 & \textbf{0.733} \\
-precision @FAR${\leq}0.10$  & ---   & 0.846 \\
+Windowed MIL (prior)            & 0.824 & 0.087 & 0.885 & 0.216 & --- \\
+\textbf{ResNet-18 + GRU (this)} & \textbf{0.867} & \textbf{0.080} & \textbf{0.919} & \textbf{0.133} & --- \\
+\midrule
+On the full 626-file corpus (threshold calibration) & 0.812 & 0.041 & --- & --- & 47 \\
 \bottomrule
 \end{tabular}
 \end{table}
-Soft-labels улучшают near-field точность прихода и \emph{резко}~--- детекцию:
-baseline при FAR${\leq}0.10$ даёт recall~$0$ (порог упирается в~1.0), soft при
-FAR${=}0.08$ ловит $11/15$ (recall~$0.733$, precision~$0.846$).
+
+Figure~\ref{fig:forge} shows a representative FORGE stage: the converging wedge is unambiguous
+in the waterfall; the alarm goes red well before the hit; the 3D inset marks the active
+depth window; the classical ETA pulls in during the last few minutes.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.78\linewidth]{figs/forge8_2.png}
+\caption{A clean FORGE stage, live. The strain-rate waterfall (top-right) shows the
+converging wedge; $P(\text{hit})$ saturates minutes before the event; red latches; the
+3D view highlights the active depth window.}
+\label{fig:forge}
+\end{figure}
+
+A useful anecdotal observation --- and a load-bearing one for the design choice to scan in
+depth rather than classify a recording as a whole --- is Figure~\ref{fig:two}: on an HFTS-2
+stage labelled with one hit, the per-window $P(\text{hit})$ produces two clearly separated
+peaks. Looking back at the waterfall, the second event is really there and had been missed
+by human review.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.45\linewidth]{figs/twohump_Phit.png}
+\caption{File-level $P(\text{hit})$ over time on an HFTS-2 stage labelled with a single hit
+(green dotted). The windowed MIL scan returns two cleanly separated peaks; the second one,
+previously unlabelled, is a real event confirmed by reinspection of the waterfall.}
+\label{fig:two}
+\end{figure}
 
 % ─────────────────────────────────────────────────────────────────────────
-\section{Ограничения}
-\textit{[написано]} (i)~A/B на реальных данных~--- один seed, маленький val (15 hit);
-полный pairloo-OOF отложен. (ii)~Пересечение well-групп train/val равно~20: группа
-по постановке~--- treatment event, а не скважина; для ещё более честной оценки --- strict
-leave-one-WELL-out. (iii)~Property-тесты и Lean покрывают \texttt{preprocess.py}
-(чистые функции); причинность GRU/warmup в сетевом пайплайне формально не тестируется.
-(iv)~Численный эксперимент (\S\ref{sec:verify})~--- синтетический: он показывает
-механизм и цену утечки, а не абсолютные числа production-модели.
+\section{Discussion and limitations}
+Three caveats sit in the numbers. First, the effective sample size is the number of
+independent well pairs, not recordings --- per-pair $t_\text{hit}$ medians (65, 70, 108,
+179\,min) explain most of what the time head learned, which is why the system is reported
+as a detector. Second, the ResNet recipe (G2, no-bucket) was fixed by multi-fold search on
+the same corpus that supplies the operating point; an unconditional leave-one-field-out
+would widen both sides of the Pareto front. Third, on sparser fields (Vineyard, CrownQuest)
+the signal is often visible to the eye but activation maps drift off the deformation core.
+The guarantees in~\S\ref{sec:verify} cover preprocessing only (backward difference, EWMA,
+causal decimation); the GRU warm-up and the MIL pooling stay inside the property-test and
+empirical envelope.
 
 % ─────────────────────────────────────────────────────────────────────────
-\section{Вывод}
-\textit{[написано]} Трёхуровневая верификация (валидатор $\to$ property-тесты
-$\to$ Lean) делает метрики проекта TrafficLight устойчивыми к look-ahead-утечкам,
-а soft-labels снимают часть шума разметки, резко поднимая recall при фиксированном
-FAR. Полный репозиторий и журналы проверок: \url{https://github.com/rvkorkin/ai4science}
-(ветки \texttt{hw2}~--- проверка, \texttt{article}~--- статья).
+\section{Conclusion}
+A frac-hit detector that pairs an ImageNet-pretrained ResNet-18 with a causal GRU and a
+windowed MIL scan is competitive on a small, heterogeneous field corpus (PR-AUC $0.919$,
+recall $0.867$ at FAR $0.080$, median lead 47\,min). The operational surface is
+deliberately coarse --- a three-state traffic light --- because minute-level timing is
+provably not in the signal at this corpus size. Causal preprocessing is formalised in Lean
+and empirically shown to be worth $+0.45$ AUC if violated. Future work is an honest
+leave-one-field-out of the ResNet recipe, more data on the sparse fields, and a formal
+treatment of the GRU warm-up.
 
-% ─────────────────────────────────────────────────────────────────────────
-\printbibliography[title={Источники}]
+\printbibliography[title={References}]
 
-% ─────────────────────────────────────────────────────────────────────────
-\section*{Использование ИИ-ассистентов}
+\section*{Use of AI assistants}
 \small
-\begin{tabular}{p{4.5cm} p{3.0cm} p{3.5cm} p{4.0cm}}
+\begin{tabular}{p{4.3cm} p{2.8cm} p{3.0cm} p{4.5cm}}
 \toprule
-Фрагмент / файл & Пометка & Инструмент & Чем проверено \\
+Artifact & Label & Tool / model & Checked by \\
 \midrule
-\texttt{src/preprocess.py}, \texttt{wedge\_near.py} & \texttt{[написано]} & человек (R.~Korkin) & property-тесты + Lean \\
-\texttt{checks/test\_*.py}, \texttt{validate\_data.py} & \texttt{[порождено]} & Goose / Cursor & прогон pytest; не-вырожденность отдельно \\
-\texttt{checks/experiment.py} & \texttt{[порождено]} & Cursor (Claude) & 5 seed, правило принятия \\
-\texttt{checks/CausalPreprocess.lean} & \texttt{[порождено]} + правка & черновик агента; EWMA~--- человек & \texttt{lean\_check success:true}, 0 \texttt{sorry} \\
-Физика клина, \S2; ручные метки & \texttt{[написано]} & --- & литература~\cite{liu2020,li2024,reid2023} \\
-Разделы \S1--\S9 этого текста & \texttt{[написано]} + правка Cursor & человек + Cursor & сверено с \texttt{checks/results/} \\
+\texttt{src/preprocess.py}, \texttt{wedge\_near.py} & human-written & --- & property tests + Lean \\
+\texttt{checks/test\_*.py}, \texttt{validate\_data.py} & generated & Goose; Cursor (Claude) & \texttt{pytest -q checks}; non-vacuous asserts \\
+\texttt{checks/experiment.py} (leak-cost) & generated & Cursor (Claude) & 5-seed run; declared acceptance rule \\
+\texttt{checks/CausalPreprocess.lean} & generated + edited & Goose draft; EWMA by human & SciLib \texttt{lean\_check success:true}, 0 \texttt{sorry} \\
+Sections 1--6 of this paper & human-written & --- (minor polish by Cursor) & numbers cross-checked against \texttt{checks/results/} \\
+Figures~\ref{fig:das}, \ref{fig:forge}, \ref{fig:two} & human (SLB) & --- & from the SLB Q4 internal review \\
 \bottomrule
 \end{tabular}
 

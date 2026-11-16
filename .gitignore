@@ -39,3 +39,10 @@ scenario/state/
 .vscode/
 .idea/
 *.swp
+
+# HW3 scenario runtime artifacts
+bus/
+scenario/fixtures/
+scenario/state/
+scenario/journal.jsonl
+scenario/summary.json

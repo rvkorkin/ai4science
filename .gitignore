@@ -1,48 +1,23 @@
-# Secrets — NEVER commit
-.env
-.env.*
-*.key
-*.pem
-
-# Python
-__pycache__/
-*.pyc
-*.pyo
-.venv/
-.pytest_cache/
-.hypothesis/
-
-# TrafficLight research data — lives OUTSIDE the submission (same policy as HW1)
-data/
-field_data_enriched/
-split.json
-field_strongest_hits.json
-*.npz
-*.pt
-*.pdf
-*.h5
-*.fbe
-*.olean
-*.log
-*.bak
-
-# Agent/tooling data
-.goose/
-.tools/
-
-# HW3 scenario runtime (fixtures are regenerated deterministically; state is local)
-scenario/fixtures/
-scenario/state/
-
-# OS / editors
-.DS_Store
-.vscode/
-.idea/
-*.swp
-
-# HW3 scenario runtime artifacts
+# runtime artifacts (regenerated on demand)
 bus/
 scenario/fixtures/
-scenario/state/
-scenario/journal.jsonl
-scenario/summary.json
+scenario/state
+scenario/journal.log
+
+# python caches
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Lean build
+*.olean
+*.bak
+
+# TrafficLight data (never commit real recordings)
+*.npz
+*.pt
+*.h5
+*.fbe
+
+# large data (template folder)
+hw3_tools_scale/

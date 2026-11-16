@@ -42,3 +42,20 @@ __pycache__/
 .pytest_cache/
 .hypothesis/
 *.egg-info/
+
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.toc
+*.bbl
+*.bcf
+*.blg
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.run.xml
+*.nav
+*.snm
+*.vrb
+article.pdf

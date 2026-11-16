@@ -39,6 +39,6 @@
 |---|---|
 | Прогнать проверки | `python -m pytest -q checks` |
 | Прогнать численный эксперимент | `python checks/experiment.py` |
-| Собрать PDF (если понадобится) | `pandoc README.md -o article.pdf` |
+| Собрать статью (PDF) | `latexmk -xelatex article.tex` (или Overleaf → XeLaTeX) |
 
 Модели/окружение/MCP — см. `AGENT.md` (ДЗ-1, общий контракт среды).

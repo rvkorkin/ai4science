@@ -2,8 +2,11 @@
 % Compile: pdflatex article ; biber article ; pdflatex article ; pdflatex article
 
 \documentclass[10pt,a4paper]{article}
-\usepackage[a4paper,top=1.7cm,bottom=1.7cm,left=1.9cm,right=1.9cm]{geometry}
+\usepackage[a4paper,top=1.4cm,bottom=1.5cm,left=1.7cm,right=1.7cm]{geometry}
 \usepackage{parskip}
+\setlength{\parskip}{3pt plus 1pt minus 1pt}
+\usepackage{titlesec}
+\titlespacing*{\section}{0pt}{1.1ex plus .4ex}{0.6ex}
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -17,8 +20,10 @@
 \usepackage{xcolor}
 \usepackage{csquotes}
 \usepackage[hidelinks]{hyperref}
-\usepackage[style=numeric,backend=biber,sorting=none,maxbibnames=5]{biblatex}
+\usepackage[style=numeric,backend=biber,sorting=none,maxbibnames=3,minbibnames=1,giveninits=true]{biblatex}
 \addbibresource{refs.bib}
+\renewcommand*{\bibfont}{\footnotesize}
+\setlength{\bibitemsep}{0pt plus 0.3ex}
 
 \title{\textbf{Frac-Hit Prediction from LF-DAS:\\
 Physics-Informed Deep Learning with a Traffic-Light Output}}
@@ -54,6 +59,10 @@ all hinge on whether the stimulated fracture has started to interact with neighb
 production. Low-frequency distributed acoustic sensing (LF-DAS) provides a dense strain
 record along a monitoring fibre in the offset well, and the fracture tip produces a
 recognisable converging-wedge signature on the strain-rate waterfall~\cite{liu2020,li2024}.
+LF-DAS is one of several diagnostic tools used to understand hydraulic-fracture
+behaviour~\cite{cipolla2002,lecalvez2007}; distributed fiber-optic sensing in particular
+has become the main real-time probe for multi-stage treatments in the last
+decade~\cite{pakhotina2020,alaamri2024}.
 
 Two things make this hard in practice. First, every stage comes from a different field,
 with a different interrogator and a different acquisition noise floor --- the domain gap is
@@ -68,8 +77,8 @@ rests on strict causality of the preprocessing --- and on being able to prove it
 \label{sec:data}
 Figure~\ref{fig:das} sketches the acquisition geometry. The corpus comprises 638 stage
 recordings with 144 hand-built hit labels across HFTS-2 (389 records, 128 hits),
-Vineyard (56, 9), Laja/YPF (64, 5), FORGE (8, 2), CrownQuest, PetroHunt, Vista and several
-smaller fields. Labelling is manual --- there is no ground truth --- and ambiguous cases
+Vineyard (56, 9), Laja/YPF (64, 5), FORGE (8, 2)~\cite{kuznetsov2026utahforge},
+CrownQuest, PetroHunt, Vista and several smaller fields. Labelling is manual --- there is no ground truth --- and ambiguous cases
 are kept in the training set but excluded from evaluation rather than guessed. Monitor/treatment
 spacing ranges from tens of metres to more than one kilometre.
 
@@ -117,7 +126,12 @@ Thresholds are tied to the deployed checkpoint and were selected on the full fie
 tolerated false-alarm rate over \emph{files}, not rows (the operator sees one alarm per
 recording). In the last few minutes, when the classical FWHM-wedge extrapolation becomes
 accurate~\cite{liu2020,li2024}, it supplies a refined ETA that is gated to apply only when
-it itself promises a short remaining time.
+it itself promises a short remaining time. The same traffic-light idea has been successful
+on adjacent problems --- real-time cluster-efficiency monitoring and screen-out
+anticipation from high-frequency pressure and DAS~\cite{korkin2020hfpressure,korkin2024cluster,alaamri2025oman}
+--- and the choice of a ResNet over a bespoke CNN is motivated by the
+physics-informed machine-learning setup of~\cite{khan2024piml} and by the DAS-controlled
+performance characterisation in~\cite{kuznetsov2025urtec,lecalvez2025integrated,parkhonyuk2018}.
 
 % ─────────────────────────────────────────────────────────────────────────
 \section{Verification}

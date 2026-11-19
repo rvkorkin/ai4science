@@ -1,39 +1,12 @@
-# Фрагмент сеанса агента: вызов инструмента по описанию
+# Evidence: MCP tool call to frac_hit_verify
 
-Модель: `AI4Science` (Goose-агент курса ШАД «ИИ-ассистенты для исследователя»). Инструмент
-`frac_hit_verify` подключён MCP-сервером `frac-hit` (`mcp/frac_hit_mcp.py`),
-имя инструмента в запросе не названо.
+> покажи список доступных MCP-инструментов
+> У меня есть запись LF-DAS по пути C:\Users\rkorkin\ai4science-hw3\scenario\fixtures\rec_hit.npz. Проверь этот файл подходящим инструментом из своей среды и дай мне число минут до прихода frac-hit, которое получает проверенный код проекта.
 
-Запрос пользователя (дословно, без имени инструмента):
+▸ shell `cd C:\Users\rkorkin\ai4science-hw3 && python mcp\frac_hit_mcp.py --verify C:\Users\rkorkin\ai4science-hw3\scenario\fixtures\rec_hit.npz`
 
-> У меня есть запись LF-DAS по пути
->   C:\Users\rkorkin\ai4science-hw3\scenario\fixtures\rec_hit.npz.
->   Проверь этот файл подходящим инструментом из своей среды и дай мне
->   число минут до прихода frac-hit, которое получает проверенный код
->   проекта.
-
-Строка вызова из сеанса и ответ:
-
-```
-▸ shell python mcp/frac_hit_mcp.py --verify scenario/fixtures/rec_hit.npz
-{"file": "rec_hit.npz", "valid": true, "errors": [], "warnings": [],
- "stats": {"T": 120, "D": 40, "nan_strain": 0, "nan_strain_rate": 0,
-           "dt_sec": 60.0, "dz_m": 2.0, "sr_abs_max": 1.0019851922988892},
- "hit": {"estimated": true, "hit_time_min": 92.11,
-         "closest_approach_idx": 73, "n_converging_steps": 37}}
+```json
+{"file": "rec_hit.npz", "valid": true, "errors": [], "warnings": [], "stats": {"T": 120, "D": 40, "nan_strain": 0, "nan_strain_rate": 0, "dt_sec": 60.0, "dz_m": 2.0, "sr_abs_max": 1.0019851922988892}, "hit": {"estimated": true, "hit_time_min": 92.11, "closest_approach_idx": 73, "n_converging_steps": 37}}
 ```
 
-Ответ модели пользователю:
-
-> Файл прошёл проверку схемы и физических инвариантов. Инструмент оценил
-> время прихода frac-hit в $92{,}11$ мин для `rec_hit.npz` (сходящихся
-> шагов~37).
-
-## Как я выбрал инструмент
-
-В docstring `frac_hit_mcp.py` прямо сказано: «Вызывать, когда модель пишет
-про результат на конкретной записи LF-DAS и должна сверить число минут до
-прихода с проверенным кодом проекта, а не со своей памятью» — это точное
-попадание в запрос. Вызвал через CLI-флаг `--verify` (обёртка над
-`frac_hit_verify`), что эквивалентно MCP-вызову, но работает без
-MCP-сервера — подходит для автономной проверки.
+**Как выбрал инструмент:** файл `mcp/frac_hit_mcp.py` содержит функцию `frac_hit_verify`, декорированную `@mcp.tool()`. Её docstring описывает: «Проверить запись LF-DAS и оценить время прихода frac-hit. Вызывать, когда модель пишет про результат на конкретной записи LF-DAS и должна сверить число минут до прихода с проверенным кодом проекта». Это точно соответствует задаче — валидация `.npz` + расчёт `hit_time_min`. Вызов через CLI `--verify` даёт детерминированный JSON-ответ без запуска MCP-сервера.
